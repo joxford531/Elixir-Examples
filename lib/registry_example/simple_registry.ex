@@ -6,9 +6,9 @@ defmodule SimpleRegistry do
     GenServer.start_link(@mod, %{}, name: @mod)
   end
 
-  def init(state) do
+  def init(process_registry) do
     Process.flag(:trap_exit, true)
-    {:ok, state}
+    {:ok, process_registry}
   end
 
   def register(name) do
@@ -19,23 +19,30 @@ defmodule SimpleRegistry do
     GenServer.call(@mod, {:whereis, name})
   end
 
-  def handle_call({:register, name}, {from, _}, state) do
-    case Map.get(state, name) do
+  def handle_call({:register, name}, {from, _}, process_registry) do
+    case Map.get(process_registry, name) do
       nil ->
         Process.link(from)
-        {:reply, :ok, Map.put(state, name, from)}
-      _ -> {:reply, :error, state}
+        {:reply, :ok, Map.put(process_registry, name, from)}
+      _ -> {:reply, :error, process_registry}
     end
   end
 
-  def handle_call({:whereis, name}, _from, state) do
-    {:reply, Map.get(state, name), state}
+  def handle_call({:whereis, name}, _from, process_registry) do
+    {:reply, Map.get(process_registry, name), process_registry}
   end
 
-  def handle_info({:EXIT, pid, _reason}, state) do
-    state = Stream.filter(state, fn {_k, v} -> pid != v end)
+  def handle_info({:EXIT, pid, _reason}, process_registry) do
+    {:noreply, deregister_pid(pid, process_registry)}
+  end
+
+  def handle_info(other, process_registry) do
+    super(other, process_registry)
+  end
+
+  defp deregister_pid(pid, process_registry) do
+    Stream.filter(process_registry, fn {_k, v} -> pid != v end)
     |> Enum.into(%{}, fn {k, v} -> {k, v} end)
-    {:noreply, state}
   end
 
 end

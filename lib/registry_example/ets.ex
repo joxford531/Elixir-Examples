@@ -33,4 +33,8 @@ defmodule EtsSimpleRegistry do
     {:noreply, state}
   end
 
+  def handle_info(other, state) do
+    super(other, state)
+  end
+
 end
