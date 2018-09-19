@@ -38,16 +38,13 @@ defmodule RunLengthEncoder do
   defp do_decode(acc, []), do: acc
 
   defp do_decode(acc, [head | tail]) do
-    if tail != [] do
-      acc = acc <> expander(head, hd(tail))
-      do_decode(acc, tail)
-    end
-  end
-
-  defp expander(char, letter) do
-    case Integer.parse(char) do
-      {num, _} -> Enum.into(1..num, "", fn _ -> letter end)
-      :error -> letter
+    case Integer.parse(head) do
+      {num, _} ->
+        acc = acc <> Enum.into(1..num, "", fn _ -> hd(tail) end)
+        do_decode(acc, tl(tail))
+      :error ->
+        acc = acc <> head
+        do_decode(acc, tail)
     end
   end
 end
